@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"reflect"
-	"strconv"
 	"strings"
 
 	"go-micro.dev/v4/registry"
@@ -14,7 +13,7 @@ import (
 
 func serviceDef(opts server.Options) *registry.Service {
 	var advt, host string
-	var port int
+	var port string
 
 	if len(opts.Advertise) > 0 {
 		advt = opts.Advertise
@@ -22,12 +21,9 @@ func serviceDef(opts server.Options) *registry.Service {
 		advt = opts.Address
 	}
 
-	parts := strings.Split(advt, ":")
-	if len(parts) > 1 {
-		host = strings.Join(parts[:len(parts)-1], ":")
-		port, _ = strconv.Atoi(parts[len(parts)-1])
-	} else {
-		host = parts[0]
+	host, port, err := net.SplitHostPort(advt)
+	if err != nil {
+		panic(fmt.Sprintf("%s not valid net addr, err: %s", advt, err))
 	}
 
 	addr, err := addr.Extract(host)
@@ -37,7 +33,7 @@ func serviceDef(opts server.Options) *registry.Service {
 
 	node := &registry.Node{
 		Id:       opts.Name + "-" + opts.Id,
-		Address:  net.JoinHostPort(addr, fmt.Sprint(port)),
+		Address:  net.JoinHostPort(addr, port),
 		Metadata: opts.Metadata,
 	}
 
